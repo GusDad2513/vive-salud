@@ -1,0 +1,222 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+export default function ViveSaludApp() {
+  const [glucosa, setGlucosa] = useState(110);
+  const [peso, setPeso] = useState(70);
+  const [historial, setHistorial] = useState([]);
+  const [ejercicioRealizado, setEjercicioRealizado] = useState([]);
+  const [imagenVisible, setImagenVisible] = useState({});
+  const [metas, setMetas] = useState({ peso: null, glucosa: null });
+  const [alerta, setAlerta] = useState("");
+
+  const registrarEjercicio = (nombre) => {
+    setEjercicioRealizado((prev) => [...new Set([...prev, nombre])]);
+  };
+
+  const toggleImagen = (nombre) => {
+    setImagenVisible((prev) => ({ ...prev, [nombre]: !prev[nombre] }));
+  };
+
+  const guardarRegistroSemanal = () => {
+    const fecha = new Date().toLocaleDateString();
+    const nuevoHistorial = [...historial, { fecha, glucosa: Number(glucosa), peso: Number(peso) }];
+    setHistorial(nuevoHistorial);
+
+    if (metas.glucosa && glucosa > metas.glucosa + 30) {
+      setAlerta("⚠️ Tu nivel de glucosa excede significativamente la meta. Considera ajustar tu dieta o consultar a tu médico.");
+    } else if (metas.peso && peso > metas.peso + 5) {
+      setAlerta("⚠️ Tu peso está por encima de la meta. Es recomendable intensificar tu rutina de ejercicio.");
+    } else {
+      setAlerta("");
+    }
+  };
+
+  useEffect(() => {
+    const alarma = setInterval(() => {
+      alert("¡Es momento de registrar tu peso y nivel de glucosa semanal!");
+    }, 1000 * 60 * 60 * 24 * 7);
+    return () => clearInterval(alarma);
+  }, []);
+
+  const calcularMetas = (pesoActual, tipoDiabetes) => {
+    const metaPeso = pesoActual - (pesoActual >= 100 ? 1.5 : pesoActual >= 80 ? 1.2 : 0.8);
+    const metaGlucosa = tipoDiabetes === "Tipo 2" ? 130 : tipoDiabetes === "Tipo 1" ? 150 : 120;
+    setMetas({ peso: metaPeso, glucosa: metaGlucosa });
+  };
+
+  const rutinasPorZona = useMemo(() => ({
+    Piernas: [
+      { nombre: "Sentadillas con peso corporal", rep: "3x15" },
+      { nombre: "Zancadas caminando", rep: "3x12 por pierna" },
+      { nombre: "Elevaciones de talones", rep: "3x20" }
+    ],
+    Espalda: [
+      { nombre: "Remo inclinado con mancuernas", rep: "3x10" },
+      { nombre: "Superman", rep: "3x15" },
+      { nombre: "Pull-ups asistidas", rep: "3x5" }
+    ],
+    Pecho: [
+      { nombre: "Flexiones de pecho", rep: "3x12" },
+      { nombre: "Press de banca", rep: "3x10" },
+      { nombre: "Aperturas con mancuernas", rep: "3x12" }
+    ],
+    Abdomen: [
+      { nombre: "Crunches", rep: "3x20" },
+      { nombre: "Plancha", rep: "3x30 segundos" },
+      { nombre: "Elevaciones de piernas", rep: "3x15" }
+    ]
+  }), []);
+
+  const dietaPorSeveridad = useMemo(() => (
+    peso >= 100 ? [
+      "Desayuno: Smoothie de vegetales con proteína vegetal",
+      "Comida: Ensalada con salmón a la parrilla",
+      "Cena: Caldo de verduras con tofu",
+      "Colaciones: Apio con hummus, almendras"
+    ] : [
+      "Desayuno: Omelette de claras con espinaca",
+      "Comida: Pollo a la plancha con quinoa y ensalada verde",
+      "Cena: Sopa de lentejas con aguacate",
+      "Colaciones: Yogur griego sin azúcar, nueces"
+    ]
+  ), [peso]);
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold text-center">ViveSalud</h1>
+
+      <form className="space-y-4 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+        <h2 className="text-xl font-semibold">Personaliza tu plan</h2>
+        <input type="number" placeholder="Edad" className="w-full p-2 rounded border" />
+        <input
+          type="number"
+          placeholder="Peso (kg)"
+          className="w-full p-2 rounded border"
+          onChange={(e) => setPeso(Number(e.target.value))}
+        />
+        <select className="w-full p-2 rounded border" onChange={(e) => calcularMetas(peso, e.target.value)}>
+          <option>Tipo de diabetes</option>
+          <option>Tipo 1</option>
+          <option>Tipo 2</option>
+        </select>
+        <select className="w-full p-2 rounded border">
+          <option>Nivel de actividad</option>
+          <option>Sedentario</option>
+          <option>Moderado</option>
+          <option>Activo</option>
+        </select>
+        <Button className="w-full" onClick={() => calcularMetas(peso, "Tipo 2")}>Actualizar plan</Button>
+      </form>
+
+      <div className="max-w-md mx-auto space-y-4">
+        <h2 className="text-xl font-semibold">Seguimiento de progreso</h2>
+        <div className="flex items-center justify-between">
+          <label>Nivel de glucosa (mg/dL):</label>
+          <input
+            type="number"
+            value={glucosa}
+            onChange={(e) => setGlucosa(Number(e.target.value))}
+            className="w-24 p-1 rounded border"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <label>Peso (kg):</label>
+          <input
+            type="number"
+            value={peso}
+            onChange={(e) => setPeso(Number(e.target.value))}
+            className="w-24 p-1 rounded border"
+          />
+        </div>
+        <Button className="mt-2 w-full" onClick={guardarRegistroSemanal}>Guardar registro semanal</Button>
+
+        {alerta && <p className="text-red-600 text-sm mt-2">{alerta}</p>}
+
+        {metas.peso && metas.glucosa && (
+          <div className="mt-2 text-sm text-gray-700">
+            <p>Meta semanal de peso: <strong>{metas.peso.toFixed(1)} kg</strong></p>
+            <p>Meta semanal de glucosa: <strong>{metas.glucosa} mg/dL</strong></p>
+          </div>
+        )}
+
+        {historial.length > 0 && (
+          <Card className="mt-4">
+            <CardContent>
+              <h3 className="text-lg font-semibold mb-2">Historial semanal</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={historial}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="fecha" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="glucosa" stroke="#8884d8" name="Glucosa" />
+                  <Line type="monotone" dataKey="peso" stroke="#82ca9d" name="Peso" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <Tabs defaultValue="dieta" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="dieta">Plan de dieta</TabsTrigger>
+          <TabsTrigger value="ejercicio">Rutinas de ejercicio</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dieta">
+          {["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].map((dia, i) => (
+            <Card key={i} className="mt-4">
+              <CardContent className="p-4 space-y-4">
+                <h2 className="text-xl font-semibold">{dia}</h2>
+                <ul className="list-disc list-inside">
+                  {dietaPorSeveridad.map((comida, idx) => (
+                    <li key={idx}>{comida}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="ejercicio">
+          {Object.entries(rutinasPorZona).map(([zona, ejercicios], i) => (
+            <Card key={i} className="mt-4">
+              <CardContent className="p-4 space-y-4">
+                <h2 className="text-xl font-semibold">Rutina de {zona}</h2>
+                {ejercicios.map((ej, idx) => (
+                  <div key={idx} className="p-2 border rounded space-y-1">
+                    <p className="font-medium">{ej.nombre} - {ej.rep}</p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => registrarEjercicio(ej.nombre)} className="text-sm">
+                        Marcar como realizado
+                      </Button>
+                      <Button variant="ghost" onClick={() => toggleImagen(ej.nombre)} className="text-sm">
+                        {imagenVisible[ej.nombre] ? "Ocultar imagen" : "Ver ejemplo"}
+                      </Button>
+                    </div>
+                    {ejercicioRealizado.includes(ej.nombre) && (
+                      <p className="text-green-600 text-sm">Ejercicio completado</p>
+                    )}
+                    {imagenVisible[ej.nombre] && (
+                      <img
+                        src={`https://via.placeholder.com/300x200.png?text=${encodeURIComponent(ej.nombre)}`}
+                        alt={`Ejemplo de ${ej.nombre}`}
+                        className="rounded mt-2"
+                      />
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
